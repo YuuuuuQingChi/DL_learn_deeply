@@ -160,25 +160,68 @@
 # print(img.shape)  # 应该输出 torch.Size([1, 64, 64])
 # print(target)     # 输出对应的标签（0-9）
 
+# import torch
+# from torch import nn
+# from d2l import torch as d2l
+# import matplotlib
+# batch_size = 256
+# train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
+
+# # PyTorch不会隐式地调整输入的形状。因此，
+# # 我们在线性层前定义了展平层（flatten），来调整网络输入的形状
+# net = nn.Sequential(nn.Flatten(), nn.Linear(784, 10))
+
+# def init_weights(m):
+#     if type(m) == nn.Linear:
+#         nn.init.normal_(m.weight, std=0.01)
+
+# net.apply(init_weights);
+
+# loss = nn.CrossEntropyLoss(reduction='none')
+# trainer = torch.optim.SGD(net.parameters(), lr=0.1)
+# num_epochs = 10
+# d2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, trainer)
+# d2l.plt.show()
+
+##part4
 import torch
-from torch import nn
-from d2l import torch as d2l
-import matplotlib
-batch_size = 256
-train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
+import torchvision
+from torchvision import transforms
+from torch.utils.data import DataLoader
+import test_linear_module
+transform = transforms.Compose([
+    transforms.ToTensor()
+])
 
-# PyTorch不会隐式地调整输入的形状。因此，
-# 我们在线性层前定义了展平层（flatten），来调整网络输入的形状
-net = nn.Sequential(nn.Flatten(), nn.Linear(784, 10))
 
-def init_weights(m):
-    if type(m) == nn.Linear:
-        nn.init.normal_(m.weight, std=0.01)
+mnist_train_dataset = torchvision.datasets.FashionMNIST(
+    "./data", True, transform, download=True)
+mnist_test_dataset = torchvision.datasets.FashionMNIST(
+    "./data", False, transform, download=True)
 
-net.apply(init_weights);
+epoch = 100
+batch_size_ = 32
 
-loss = nn.CrossEntropyLoss(reduction='none')
-trainer = torch.optim.SGD(net.parameters(), lr=0.1)
-num_epochs = 10
-d2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, trainer)
-d2l.plt.show()
+mnist_train_dataloader = DataLoader(mnist_train_dataset, batch_size=batch_size_,shuffle=True)
+mnist_test_dataloader = DataLoader(mnist_test_dataset, batch_size=batch_size_,shuffle=True)
+
+test_module = test_linear_module.softmax_()
+loss_func = torch.nn.CrossEntropyLoss()
+optimization = torch.optim.SGD(test_module.parameters(),lr=0.2)
+
+
+
+for epoch_ in range(epoch):
+    test_module.train()
+    total_loss = 0
+    for data in mnist_test_dataloader:
+        imgs , targets = data
+        output = test_module(imgs)
+        loss = loss_func(output,targets)/batch_size_
+
+        optimization.zero_grad()
+        loss.backward()
+        optimization.step()
+        total_loss+=loss
+    print(total_loss)
+
